@@ -7,53 +7,66 @@ module Iteraptor
     raise "This module might be included into Enumerables only" unless base.ancestors.include? Enumerable
   end
 
-  def cada root = nil, parent = nil
-    return enum_for(:cada) unless block_given?
-
-    root ||= self
-
-    case self
-    when Hash then cada_in_hash(root, parent, &Proc.new)
-    when Array then cada_in_array(root, parent, &Proc.new)
-    else cada_in_enumerable(root, parent, &Proc.new)
+  %i(cada mapa).each do |m|
+    define_method m do |root = nil, parent = nil, &λ|
+      return enum_for(m) unless λ
+      send_to = [Hash, Array, Enumerable].detect { |c| is_a? c }
+      send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, &λ)
     end
   end
 
-  def mapa root = nil, parent = nil
-    return enum_for(:mapa) unless block_given?
+  # rubocop:disable Metrics/CyclomaticComplexity
+  # rubocop:disable Metrics/MethodLength
+  def segar filter
+    return enum_for(:segar) unless block_given?
 
-    root ||= self
-
-    case self
-    when Hash then mapa_in_hash(root, parent, &Proc.new)
-    when Array then mapa_in_array(root, parent, &Proc.new)
-    else mapa_in_enumerable(root, parent, &Proc.new)
+    cada.with_object({}) do |(parent, element), memo|
+      p = parent.split(DELIMITER)
+      if case filter
+         when String then p.include?(filter)
+         when Symbol then p.include?(filter.to_s)
+         when Regexp then p.any? { |key| key =~ filter }
+         when Array then parent.include?(filter.join(DELIMITER))
+         end
+        yield parent, element
+        memo[parent] = element
+      end
     end
   end
+  # rubocop:enable Metrics/MethodLength
+  # rubocop:enable Metrics/CyclomaticComplexity
 
   private
 
   ##############################################################################
   ### cada
   def cada_in_array root = nil, parent = nil
+    λ = Proc.new
+
     each.with_index do |e, idx|
-      yield(*[root, leaf?(e), parent, e])
+      p = [parent, idx].compact.join(DELIMITER)
+
+      yield p, e
 
       case e
-      when Iteraptor then e.cada(root, [parent, idx].compact.join(DELIMITER), &Proc.new)
-      when Enumerable then e.each(&Proc.new)
+      when Iteraptor then e.cada(root, p, &λ)
+      when Enumerable then e.each(&λ.curry[p])
       end
     end
   end
   alias cada_in_enumerable cada_in_array
 
   def cada_in_hash root = nil, parent = nil
+    λ = Proc.new
+
     each do |k, v|
-      yield(*[root, leaf?(v), parent, [k, v]])
+      p = [parent, k].compact.join(DELIMITER)
+
+      yield p, v
 
       case v
-      when Iteraptor then v.cada(root, [parent, k].compact.join(DELIMITER), &Proc.new)
-      when Enumerable then v.each(&Proc.new)
+      when Iteraptor then v.cada(root, p, &λ)
+      when Enumerable then v.each(&λ.curry[p])
       end
     end
   end
@@ -61,29 +74,39 @@ module Iteraptor
   ##############################################################################
   ### mapa
   def mapa_in_array root = nil, parent = nil
+    λ = Proc.new
+
     map.with_index do |e, idx|
+      p = [parent, idx].compact.join(DELIMITER)
+
       case e
-      when Iteraptor then e.mapa(root, [parent, idx].compact.join(DELIMITER), &Proc.new)
-      when Enumerable then e.map(&Proc.new)
-      else yield(*[root, parent, e])
+      when Iteraptor then e.mapa(root, p, &λ)
+      when Enumerable then e.map(&λ.curry[p])
+      else yield p, e
       end
     end
   end
   alias mapa_in_enumerable mapa_in_array
 
   def mapa_in_hash root = nil, parent = nil
+    λ = Proc.new
+
     map do |k, v|
+      p = [parent, k].compact.join(DELIMITER)
+
       case v
-      when Iteraptor then [k, v.mapa(root, [parent, k].compact.join(DELIMITER), &Proc.new)]
-      when Enumerable then [k, v.map(&Proc.new)]
-      else yield(*[root, parent, [k, v]])
+      when Iteraptor then [k, v.mapa(root, p, &λ)]
+      when Enumerable then [k, v.map(&λ.curry[p])]
+      else yield p, [k, v]
       end
     end.to_h
   end
 
+  ##############################################################################
+  ### helpers
   def leaf? e
     [Iteraptor, Enumerable].none? { |c| e.is_a? c }
   end
-
-  [Array, Hash].each { |c| c.send :include, Iteraptor }
 end
+
+require "iteraptor/greedy"

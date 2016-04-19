@@ -28,20 +28,21 @@ Or install it yourself as:
 
 ### Iteration
 
-    λ = ->(root, leaf, parent, element) { puts ... }
+```ruby
+λ = ->(parent, element) { puts ... }
 
-    [:a, b: {c: 42}].cada &λ
-    #⇒ [:a, {:b=>{:c=>42}}] » true » nil » :a
-    #⇒ [:a, {:b=>{:c=>42}}] » false » nil » {:b=>{:c=>42}}
-    #⇒ [:a, {:b=>{:c=>42}}] » false » "1" » [:b, {:c=>42}]
-    #⇒ [:a, {:b=>{:c=>42}}] » true » "1.b" » [:c, 42]
+[:a, b: {c: 42}].cada &λ
+#⇒ 0 » :a
+#⇒ 1 » {:b=>{:c=>42}}
+#⇒ 1.b » {:c=>42}
+#⇒ 1.b.c » 42
 
-    {a: 42, b: [:c, :d]}.cada &λ
-    #⇒ {:a=>42, :b=>[:c, :d]} » true » nil » [:a, 42]
-    #⇒ {:a=>42, :b=>[:c, :d]} » false » nil » [:b, [:c, :d]]
-    #⇒ {:a=>42, :b=>[:c, :d]} » true » "b" » :c
-    #⇒ {:a=>42, :b=>[:c, :d]} » true » "b" » :d
-
+{a: 42, b: [:c, :d]}.cada &λ
+#⇒ a » 42
+#⇒ b » [:c, :d]
+#⇒ b.0 » :c
+#⇒ b.1 » :d
+```
 
 ## Development
 

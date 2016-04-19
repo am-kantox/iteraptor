@@ -11,3 +11,15 @@ Style/MethodDefParentheses:
     - 'spec/**/*'
     - 'test/**/*'
     - 'lib/**/*'
+
+Style/AsciiIdentifiers:
+  Exclude:
+    - 'spec/**/*'
+    - 'test/**/*'
+    - 'lib/**/*'
+
+Style/VariableName:
+  Exclude:
+    - 'spec/**/*'
+    - 'test/**/*'
+    - 'lib/**/*'
