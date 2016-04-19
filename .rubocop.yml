@@ -1,0 +1,13 @@
+inherit_from: .rubocop_todo.yml
+
+Metrics/LineLength:
+  Max: 180
+
+Style/HashSyntax:
+  EnforcedStyle: ruby19
+
+Style/MethodDefParentheses:
+  Exclude:
+    - 'spec/**/*'
+    - 'test/**/*'
+    - 'lib/**/*'
