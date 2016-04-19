@@ -65,7 +65,7 @@ describe Iteraptor do
   # rubocop:disable Style/AsciiIdentifiers
   # rubocop:disable Style/VariableName
   describe 'examples' do
-    λ = ->(root, leaf, parent, element) { puts "#{root.inspect} » #{leaf} » #{parent} » #{element.inspect}" }
+    λ = ->(root, leaf, parent, element) { puts "#{root.inspect} » #{leaf} » #{parent.nil? ? 'nil' : parent} » #{element.inspect}" }
     [:a, b: { c: 42 }].cada(&λ)
     { a: 42, b: [:c, :d] }.cada(&λ)
   end
