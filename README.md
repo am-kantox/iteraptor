@@ -1,8 +1,6 @@
 # Iteraptor
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/iteraptor`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This small mixin allows the deep iteration / mapping of `Enumerable`s instances.
 
 ## Installation
 
@@ -22,7 +20,24 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+
+
+### Iteration
+
+    λ = ->(root, leaf, parent, element) { puts ... }
+
+    [:a, b: {c: 42}].cada &λ
+    #⇒ [:a, {:b=>{:c=>42}}] » true » nil » :a
+    #⇒ [:a, {:b=>{:c=>42}}] » false » nil » {:b=>{:c=>42}}
+    #⇒ [:a, {:b=>{:c=>42}}] » false » "1" » [:b, {:c=>42}]
+    #⇒ [:a, {:b=>{:c=>42}}] » true » "1.b" » [:c, 42]
+
+    {a: 42, b: [:c, :d]}.cada &λ
+    #⇒ {:a=>42, :b=>[:c, :d]} » true » nil » [:a, 42]
+    #⇒ {:a=>42, :b=>[:c, :d]} » false » nil » [:b, [:c, :d]]
+    #⇒ {:a=>42, :b=>[:c, :d]} » true » "b" » :c
+    #⇒ {:a=>42, :b=>[:c, :d]} » true » "b" » :d
+
 
 ## Development
 
@@ -38,4 +53,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/[USERN
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-
