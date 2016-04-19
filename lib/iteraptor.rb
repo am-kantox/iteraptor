@@ -9,7 +9,7 @@ module Iteraptor
 
   %i(cada mapa).each do |m|
     define_method m do |root = nil, parent = nil, &λ|
-      return enum_for(m) unless λ
+      return enum_for(m, root, parent) unless λ
       send_to = [Hash, Array, Enumerable].detect { |c| is_a? c }
       send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, &λ)
     end
@@ -18,7 +18,7 @@ module Iteraptor
   # rubocop:disable Metrics/CyclomaticComplexity
   # rubocop:disable Metrics/MethodLength
   def segar filter
-    return enum_for(:segar) unless block_given?
+    return enum_for(:segar, filter) unless block_given?
 
     cada.with_object({}) do |(parent, element), memo|
       p = parent.split(DELIMITER)
@@ -26,7 +26,7 @@ module Iteraptor
          when String then p.include?(filter)
          when Symbol then p.include?(filter.to_s)
          when Regexp then p.any? { |key| key =~ filter }
-         when Array then parent.include?(filter.join(DELIMITER))
+         when Array then parent.include?(filter.map(&:to_s).join(DELIMITER))
          end
         yield parent, element
         memo[parent] = element

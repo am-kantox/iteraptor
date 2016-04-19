@@ -129,6 +129,11 @@ describe Iteraptor do
         expect(nest.segar(:key) do |key, value|
           puts "Key is: #{key}, Value is: #{value}"
         end).to eq("top.key" => 42, "top.subkey.key" => 3.1415)
+        expect(nest.segar('key').to_a).to match_array [["top.key", 42], ["top.subkey.key", 3.1415]]
+        expect(nest.segar([:subkey, :key]).to_a).to match_array [["top.subkey.key", 3.1415]]
+        expect(nest.segar(/key/).to_a).to match_array [["keys", [:key, :key]], ["keys.0", :key], ["keys.1", :key],
+                                                       ["top.key", 42], ["top.subkey", { key: 3.1415 }],
+                                                       ["top.subkey.key", 3.1415]]
       end
     end
   end
