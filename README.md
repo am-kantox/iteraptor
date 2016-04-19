@@ -1,6 +1,10 @@
 # Iteraptor
 
+[![Build Status](https://travis-ci.org/am-kantox/iteraptor.svg?branch=master)](https://travis-ci.org/am-kantox/iteraptor)
 This small mixin allows the deep iteration / mapping of `Enumerable`s instances.
+
+Adopted to be used with hashes/arrays. It **is not** intended to be used with
+large objects.
 
 ## Installation
 
