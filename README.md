@@ -24,12 +24,27 @@ Or install it yourself as:
 
 ## Usage
 
+```
+require 'iteraptor'
+require 'iteraptor/greedy' # to patch Array and Hash
+```
 
+`Iteraptor` is intended to be used for iteration of complex nested structures.
+The yielder is being called with two parameters: “current key” and “current value.”
+The key is an index (converted to string for convenience) of an element for any
+`Enumerable` save for `Hash`.
+
+Nested `Enumerable`s are called with a compound key, represented as a “breadcrumb,”
+which is a path to current key, joined with `Iteraptor::DELIMITER` constant. The
+latter is just a dot in current release.
 
 ### Iteration
 
+`Iteraptor#cada` iterates all the `Enumerable` elements, recursively. As it meets
+the `Enumerable`, it yields it and then iterates items through.
+
 ```ruby
-λ = ->(parent, element) { puts ... }
+λ = ->(parent, element) { puts "#{parent} » #{element.inspect}" }
 
 [:a, b: {c: 42}].cada &λ
 #⇒ 0 » :a
@@ -42,6 +57,41 @@ Or install it yourself as:
 #⇒ b » [:c, :d]
 #⇒ b.0 » :c
 #⇒ b.1 » :d
+```
+
+## Examples
+
+#### Find and report all empty values:
+
+```ruby
+▶ hash = {a: true, b: {c: '', d: 42}, e: ''}
+#⇒ {:a=>true, :b=>{:c=>"", :d=>42}, :e=>""}
+▶ hash.cada { |k, v| puts "#{k} has an empty value" if v == '' }
+#⇒ b.c has an empty value
+#⇒ e has an empty value
+```
+
+#### Filter keys, that meet a condition:
+
+In the example below we yield all keys, that matches the regexp given as parameter.
+
+```ruby
+▶ hash.segar(/[abc]/) { |parent, elem| puts "Parent: #{parent.inspect}, Element: #{elem.inspect}" }
+# Parent: "a", Element: true
+# Parent: "b", Element: {:c=>"", :d=>42}
+# Parent: "b.c", Element: ""
+# Parent: "b.d", Element: 42
+
+#⇒ {"a"=>true, "b"=>{:c=>"", :d=>42}, "b.c"=>"", "b.d"=>42}
+```
+
+#### Change all empty values in a hash to `'N/A'`:
+
+```ruby
+▶ hash = {a: true, b: {c: '', d: 42}, e: ''}
+#⇒ {:a=>true, :b=>{:c=>"", :d=>42}, :e=>""}
+▶ hash.mapa { |parent, (k, v)| [k, v == '' ? v = 'N/A' : v] }
+#⇒ {:a=>true, :b=>{:c=>"N/A", :d=>42}, :e=>"N/A"}
 ```
 
 ## Development
