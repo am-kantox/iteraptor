@@ -99,7 +99,7 @@ module Iteraptor
       when Enumerable then [k, v.map(&λ.curry[p])]
       else yield p, [k, v]
       end
-    end.to_h
+    end.compact.to_h
   end
 
   ##############################################################################

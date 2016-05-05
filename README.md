@@ -59,6 +59,23 @@ the `Enumerable`, it yields it and then iterates items through.
 #⇒ b.1 » :d
 ```
 
+### Mapping
+
+Mapper function should return a pair `[k, v]` or `nil` when called from hash,
+or just a value when called from an array. E. g., deep hash filtering:
+
+```ruby
+▶ hash = {a: true, b: {c: '', d: 42}, e: ''}
+#⇒ {:a=>true, :b=>{:c=>"", :d=>42}, :e=>""}
+▶ hash.mapa { |parent, (k, v)| v == '' ? nil : [k, v] }
+#⇒ {:a=>true, :b=>{:d=>42}}
+```
+
+This is not quite convenient, but I currently have no idea how to help
+the consumer to decide what to return, besides analyzing the arguments,
+received by code block. That is because internally both `Hash` and `Array` are
+iterated as `Enumerable`s.
+
 ## Examples
 
 #### Find and report all empty values:
