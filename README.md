@@ -1,7 +1,11 @@
 # Iteraptor
 
-[![Build Status](https://travis-ci.org/am-kantox/iteraptor.svg?branch=master)](https://travis-ci.org/am-kantox/iteraptor)
 This small mixin allows the deep iteration / mapping of `Enumerable`s instances.
+
+[![Build Status](https://travis-ci.org/am-kantox/iteraptor.svg?branch=master)](https://travis-ci.org/am-kantox/iteraptor)
+[![Code Climate](https://codeclimate.com/github/am-kantox/iteraptor/badges/gpa.svg)](https://codeclimate.com/github/am-kantox/iteraptor)
+[![Issue Count](https://codeclimate.com/github/am-kantox/iteraptor/badges/issue_count.svg)](https://codeclimate.com/github/am-kantox/iteraptor)
+[![Test Coverage](https://codeclimate.com/github/am-kantox/iteraptor/badges/coverage.svg)](https://codeclimate.com/github/am-kantox/iteraptor/coverage)
 
 Adopted to be used with hashes/arrays. It **is not** intended to be used with
 large objects.
