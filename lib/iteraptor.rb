@@ -40,17 +40,19 @@ module Iteraptor
 
   ##############################################################################
   ### cada
+  CADA_PROC = lambda do |e, root, p, &λ|
+    case e
+    when Iteraptor then e.cada(root, p, &λ)
+    when Enumerable then e.each(&λ.curry[p])
+    end
+  end
+
   def cada_in_array root = nil, parent = nil
     λ = Proc.new
-
     each.with_index do |e, idx|
-      p = [parent, idx].compact.join(DELIMITER)
-
-      yield p, e
-
-      case e
-      when Iteraptor then e.cada(root, p, &λ)
-      when Enumerable then e.each(&λ.curry[p])
+      [parent, idx].compact.join(DELIMITER).tap do |p|
+        yield p, e
+        CADA_PROC.call(e, root, p, &λ)
       end
     end
   end
@@ -58,15 +60,10 @@ module Iteraptor
 
   def cada_in_hash root = nil, parent = nil
     λ = Proc.new
-
     each do |k, v|
-      p = [parent, k].compact.join(DELIMITER)
-
-      yield p, v
-
-      case v
-      when Iteraptor then v.cada(root, p, &λ)
-      when Enumerable then v.each(&λ.curry[p])
+      [parent, k].compact.join(DELIMITER).tap do |p|
+        yield p, v
+        CADA_PROC.call(v, root, p, &λ)
       end
     end
   end
