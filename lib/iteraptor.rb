@@ -10,7 +10,7 @@ module Iteraptor
   %i(cada mapa).each do |m|
     define_method m do |root = nil, parent = nil, &λ|
       return enum_for(m, root, parent) unless λ
-      send_to = [Hash, Array, Enumerable].detect { |c| is_a? c }
+      send_to = [Hash, Array, Enumerable].detect(&method(:is_a?))
       send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, &λ)
     end
   end
@@ -102,8 +102,8 @@ module Iteraptor
   ##############################################################################
   ### helpers
   def leaf? e
-    [Iteraptor, Enumerable].none? { |c| e.is_a? c }
+    [Iteraptor, Enumerable].none?(&e.method(:is_a?))
   end
 end
 
-require "iteraptor/greedy"
+require 'iteraptor/greedy'
