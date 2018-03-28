@@ -7,7 +7,7 @@ module Iteraptor
     raise "This module might be included into Enumerables only" unless base.ancestors.include? Enumerable
   end
 
-  %i(cada mapa).each do |m|
+  %i[cada mapa].each do |m|
     define_method m do |root = nil, parent = nil, &λ|
       return enum_for(m, root, parent) unless λ
       send_to = [Hash, Array, Enumerable].detect(&method(:is_a?))
@@ -15,6 +15,7 @@ module Iteraptor
     end
   end
 
+  # rubocop:disable Style/MultilineIfModifier
   # rubocop:disable Metrics/CyclomaticComplexity
   # rubocop:disable Metrics/MethodLength
   def segar filter
@@ -33,8 +34,31 @@ module Iteraptor
       end
     end
   end
+
+  def aplanar delimiter: DELIMITER, symbolize_keys: false
+    cada.with_object({}) do |(parent, element), acc|
+      key = parent.tr(DELIMITER, delimiter)
+      key = key.to_sym if symbolize_keys
+      acc[key] = element unless element.is_a?(Enumerable)
+      yield key, element if block_given?
+    end
+  end
+
+  def plana_mapa delimiter: DELIMITER, symbolize_keys: false
+    return enum_for(
+      :plana_mapa, delimiter: delimiter, symbolize_keys: symbolize_keys
+    ) unless block_given?
+
+    cada.with_object([]) do |(parent, element), acc|
+      key = parent.tr(DELIMITER, delimiter)
+      key = key.to_sym if symbolize_keys
+      acc << yield(key, element) unless element.is_a?(Enumerable)
+    end
+  end
+
   # rubocop:enable Metrics/MethodLength
   # rubocop:enable Metrics/CyclomaticComplexity
+  # rubocop:enable Style/MultilineIfModifier
 
   private
 
@@ -70,7 +94,7 @@ module Iteraptor
 
   ##############################################################################
   ### mapa
-  def mapa_in_array root = nil, parent = nil
+  def mapa_in_array root = nil, parent = nil, with_index: false
     λ = Proc.new
 
     map.with_index do |e, idx|
@@ -79,7 +103,7 @@ module Iteraptor
       case e
       when Iteraptor then e.mapa(root, p, &λ)
       when Enumerable then e.map(&λ.curry[p])
-      else yield p, e
+      else yield p, (with_index ? [idx.to_s, e] : e)
       end
     end
   end

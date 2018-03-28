@@ -10,27 +10,10 @@ This small mixin allows the deep iteration / mapping of `Enumerable`s instances.
 Adopted to be used with hashes/arrays. It **is not** intended to be used with
 large objects.
 
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'iteraptor'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install iteraptor
-
 ## Usage
 
 ```ruby
 require 'iteraptor'
-require 'iteraptor/greedy' # to patch Array and Hash
 ```
 
 `Iteraptor` is intended to be used for iteration of complex nested structures.
@@ -41,6 +24,22 @@ The key is an index (converted to string for convenience) of an element for any
 Nested `Enumerable`s are called with a compound key, represented as a “breadcrumb,”
 which is a path to current key, joined with `Iteraptor::DELIMITER` constant. The
 latter is just a dot in current release.
+
+## Features
+
+* `cada` (_sp._ `each`) iterates through all the levels of the nested `Enumerable`,
+yielding `parent, element` tuple; parent is returned as a delimiter-joined string
+* `mapa` (_sp._ `map`) iterates all the elements, yielding `parent, (key, value)`;
+the mapper should return either `[key, value]` array or `nil` to remove this
+element;
+  * _NB_ this method always maps to `Hash`, to map to `Array` use `plana_mapa`
+  * _NB_ this method will raise if the returned value is neither `[key, value]` tuple nor `nil`
+* `plana_mapa` iterates yielding `key, value`, maps to the yielded value,
+whatever it is; `nil`s are not treated in some special way
+* `aplanar` (_sp._ `flatten`) the analogue of `Array#flatten`, but flattens
+the deep enumerable into `Hash` instance
+* `segar` (_sp._ `yield`), alias `escoger` (_sp._ `select`) allows to filter
+and collect elelements.
 
 ### Iteration
 
@@ -97,7 +96,9 @@ iterated as `Enumerable`s.
 In the example below we yield all keys, that matches the regexp given as parameter.
 
 ```ruby
-▶ hash.segar(/[abc]/) { |parent, elem| puts "Parent: #{parent.inspect}, Element: #{elem.inspect}" }
+▶ hash.segar(/[abc]/) do |parent, elem|
+▷   puts "Parent: #{parent.inspect}, Element: #{elem.inspect}"
+▷ end
 # Parent: "a", Element: true
 # Parent: "b", Element: {:c=>"", :d=>42}
 # Parent: "b.c", Element: ""
@@ -114,6 +115,35 @@ In the example below we yield all keys, that matches the regexp given as paramet
 ▶ hash.mapa { |parent, (k, v)| [k, v == '' ? v = 'N/A' : v] }
 #⇒ {:a=>true, :b=>{:c=>"N/A", :d=>42}, :e=>"N/A"}
 ```
+
+#### Flatten the deeply nested hash:
+
+```ruby
+▶ hash = {a: true, b: {c: '', d: 42}, e: ''}
+#⇒ {:a=>true, :b=>{:c=>"", :d=>42}, :e=>""}
+▶ hash.aplanar(delimiter: '_', symbolize_keys: true)
+#⇒ {:a=>true, :b_c=>"", :b_d=>42, :e=>""}
+```
+
+## Installation
+
+Add this line to your application's Gemfile:
+
+```ruby
+gem 'iteraptor'
+```
+
+And then execute:
+
+    $ bundle
+
+Or install it yourself as:
+
+    $ gem install iteraptor
+
+## Changelog
+
+#### 0.4.0 `aplanar` and `plana_mapa`
 
 ## Development
 
