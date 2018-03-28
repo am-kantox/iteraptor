@@ -19,7 +19,7 @@ describe Iteraptor do
   end
 
   let(:nest) do
-    { top: { key: 42, subkey: { key: 3.1415 } }, keys: [:key, :key] }
+    { top: { key: 42, subkey: { key: 3.1415 } }, keys: %w[1 2 3] }
   end
 
   let(:set) do
@@ -128,6 +128,9 @@ describe Iteraptor do
 
   describe 'segar' do
     describe 'nest' do
+      it 'filters keys out' do
+        expect(nest.segar(/subkey/)).to eq({})
+      end
       it 'calls back' do
         expect(nest.segar(:key) do |key, value|
           puts "Key is: #{key}, Value is: #{value}"
@@ -156,6 +159,13 @@ describe Iteraptor do
       expect(array.aplanar delimiter: '_', symbolize_keys: true).
         to eq(:"0"=>:a1, :"1_a2"=>42, :"1_a3"=>3.1415, :"1_a4_0"=>:a5,
               :"1_a4_1"=>true, :"1_a6_a7"=>42, :"2_0"=>:a8, :"2_1"=>:a9, :"3"=>:a10)
+    end
+  end
+
+  describe 'recoger' do
+    it 'works' do
+      expect({"top.key"=>42, "keys.0"=>"1", "keys.1"=>"2", "keys.2"=>"3"}.recoger(symbolize_keys: true)).
+        to eq(top: {key: 42}, keys: %w[1 2 3])
     end
   end
 

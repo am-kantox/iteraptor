@@ -15,25 +15,36 @@ module Iteraptor
     end
   end
 
-  # rubocop:disable Style/MultilineIfModifier
-  # rubocop:disable Metrics/CyclomaticComplexity
-  # rubocop:disable Metrics/MethodLength
-  def segar filter
-    return enum_for(:segar, filter) unless block_given?
+  def escoger *filter, soft_keys: true
+    raise ArgumentError, "no filter given in call to escoger" if filter.empty?
 
-    cada.with_object({}) do |(parent, element), memo|
-      p = parent.split(DELIMITER)
-      if case filter
-         when String then p.include?(filter)
-         when Symbol then p.include?(filter.to_s)
-         when Regexp then p.any? { |key| key =~ filter }
-         when Array then parent.include?(filter.map(&:to_s).join(DELIMITER))
-         end
-        yield parent, element
-        memo[parent] = element
-      end
+    mapa do |parent, (k, v)|
+      to_match = soft_keys ? [k.to_s, k.to_s.to_sym] : [k]
+      next unless filter.any? { |f| to_match.any?(&f.method(:===)) }
+
+      v = yield parent, [k, v] if block_given?
+      [k, v]
     end
   end
+
+  def rechazar *filter, soft_keys: true
+    raise ArgumentError, "no filter given in call to rechazar" if filter.empty?
+
+    aplanar.each_with_object({}) do |(key, value), acc|
+      to_match = key.split(DELIMITER)
+      to_match = to_match.flat_map { |k| [k.to_s, k.to_s.to_sym] } if soft_keys
+      puts [key, value.inspect, to_match].inspect
+
+      next if filter.any? { |f| to_match.any?(&f.method(:===)) }
+
+      value = yield key, value if block_given?
+      acc[key] = value
+    end.recoger
+  end
+
+  # rubocop:disable Style/Alias
+  alias_method :segar, :rechazar
+  # rubocop:enable Style/Alias
 
   def aplanar delimiter: DELIMITER, symbolize_keys: false
     cada.with_object({}) do |(parent, element), acc|
@@ -44,10 +55,21 @@ module Iteraptor
     end
   end
 
+  def recoger delimiter: DELIMITER, symbolize_keys: false
+    cada.with_object({}) do |(parent, element), acc|
+      key = parent.tr(DELIMITER, delimiter)
+      key = key.to_sym if symbolize_keys
+      acc[key] = element unless element.is_a?(Enumerable)
+      yield key, element if block_given?
+    end
+  end
+
   def plana_mapa delimiter: DELIMITER, symbolize_keys: false
+    # rubocop:disable Style/MultilineIfModifier
     return enum_for(
       :plana_mapa, delimiter: delimiter, symbolize_keys: symbolize_keys
     ) unless block_given?
+    # rubocop:enable Style/MultilineIfModifier
 
     cada.with_object([]) do |(parent, element), acc|
       key = parent.tr(DELIMITER, delimiter)
@@ -55,10 +77,6 @@ module Iteraptor
       acc << yield(key, element) unless element.is_a?(Enumerable)
     end
   end
-
-  # rubocop:enable Metrics/MethodLength
-  # rubocop:enable Metrics/CyclomaticComplexity
-  # rubocop:enable Style/MultilineIfModifier
 
   private
 
@@ -122,6 +140,13 @@ module Iteraptor
       end
     end.compact.to_h
   end
+
+  ##############################################################################
+  ### filter
+  def mapa_filtered select = true
+
+  end
+
 
   ##############################################################################
   ### helpers
