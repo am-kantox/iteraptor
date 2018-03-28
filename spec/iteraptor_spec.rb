@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'set'
 
 describe Iteraptor do
-  let!(:array) do
+  let(:array) do
     [
       :a1,
       { a2: 42, a3: 3.1415, a4: [:a5, true], a6: { a7: 42 } },
@@ -11,25 +11,25 @@ describe Iteraptor do
     ]
   end
 
-  let!(:hash) do
+  let(:hash) do
     {
       a1: 42,
       a2: { a3: 42, a4: { a5: 42, a6: [:a7, :a8] } }
     }
   end
 
-  let!(:nest) do
+  let(:nest) do
     { top: { key: 42, subkey: { key: 3.1415 } }, keys: [:key, :key] }
   end
 
-  let!(:set) do
+  let(:set) do
     { a: 42, s: [:v1, :v2, 42].to_set }
   end
 
   # rubocop:disable Style/HashSyntax
   # rubocop:disable Style/SpaceInsideHashLiteralBraces
   # rubocop:disable Style/SpaceAroundOperators
-  let!(:array_cada) do
+  let(:array_cada) do
     [["0", :a1],
      ["1", {:a2=>42, :a3=>3.1415, :a4=>[:a5, true], :a6=>{:a7=>42}}],
      ["1.a2", 42],
@@ -45,11 +45,11 @@ describe Iteraptor do
      ["3", :a10]]
   end
 
-  let!(:array_mapa) do
+  let(:array_mapa) do
     [:a1, {:a2=>84, :a3=>6.283, :a4=>[:a5, true], :a6=>{:a7=>84}}, [:a8, :a9], :a10]
   end
 
-  let!(:hash_cada) do
+  let(:hash_cada) do
     [["a1", 42],
      ["a2", {:a3=>42, :a4=>{:a5=>42, :a6=>[:a7, :a8]}}],
      ["a2.a3", 42],
@@ -60,13 +60,16 @@ describe Iteraptor do
      ["a2.a4.a6.1", :a8]]
   end
 
-  let!(:hash_mapa) do
+  let(:hash_mapa) do
     {:a1=>84, :a2=>{:a3=>84, :a4=>{:a5=>84, :a6=>[:a7, :a8]}}}
   end
 
-  let!(:set_cada) do
+  let(:set_cada) do
     [["a", 42], ["s", [:v1, :v2, 42].to_set], "s"]
   end
+
+  ##############################################################################
+
   # rubocop:enable Style/SpaceAroundOperators
   # rubocop:enable Style/SpaceInsideHashLiteralBraces
   # rubocop:enable Style/HashSyntax
@@ -83,9 +86,9 @@ describe Iteraptor do
 
   describe 'cada' do
     it 'can not be calculated lazily' do
-      expect(array.cada).to be_is_a Enumerator
+      expect(array.cada).to be_a Enumerator
       expect(array.cada.size).to be_nil
-      expect(hash.cada).to be_is_a Enumerator
+      expect(hash.cada).to be_a Enumerator
       expect(hash.cada.size).to be_nil
     end
 
@@ -101,9 +104,9 @@ describe Iteraptor do
 
   describe 'mapa' do
     it 'can not be calculated lazily' do
-      expect(array.mapa).to be_is_a Enumerator
+      expect(array.mapa).to be_a Enumerator
       expect(array.mapa.size).to be_nil
-      expect(hash.mapa).to be_is_a Enumerator
+      expect(hash.mapa).to be_a Enumerator
       expect(hash.mapa.size).to be_nil
     end
 
@@ -135,6 +138,40 @@ describe Iteraptor do
                                                        ["top.key", 42], ["top.subkey", { key: 3.1415 }],
                                                        ["top.subkey.key", 3.1415]]
       end
+    end
+  end
+
+  describe 'aplanar' do
+    it 'flattens the hash' do
+      expect(hash.aplanar).
+        to eq("a1"=>42, "a2.a3"=>42, "a2.a4.a5"=>42, "a2.a4.a6.0"=>:a7, "a2.a4.a6.1"=>:a8)
+      expect(hash.aplanar delimiter: '_', symbolize_keys: true).
+        to eq(:a1=>42, :a2_a3=>42, :a2_a4_a5=>42, :a2_a4_a6_0=>:a7, :a2_a4_a6_1=>:a8)
+    end
+
+    it 'flattens the array' do
+      expect(array.aplanar).
+        to eq("0"=>:a1, "1.a2"=>42, "1.a3"=>3.1415, "1.a4.0"=>:a5,
+              "1.a4.1"=>true, "1.a6.a7"=>42, "2.0"=>:a8, "2.1"=>:a9, "3"=>:a10)
+      expect(array.aplanar delimiter: '_', symbolize_keys: true).
+        to eq(:"0"=>:a1, :"1_a2"=>42, :"1_a3"=>3.1415, :"1_a4_0"=>:a5,
+              :"1_a4_1"=>true, :"1_a6_a7"=>42, :"2_0"=>:a8, :"2_1"=>:a9, :"3"=>:a10)
+    end
+  end
+
+  describe 'plana_mapa' do
+    it 'can not be calculated lazily' do
+      expect(array.plana_mapa).to be_a Enumerator
+      expect(array.plana_mapa.size).to be_nil
+      expect(hash.plana_mapa).to be_a Enumerator
+      expect(hash.plana_mapa.size).to be_nil
+    end
+
+    it 'flat-maps the hash' do
+      expect(hash.plana_mapa { |_k, v| v}).
+        to eq([42, 42, 42, :a7, :a8])
+      expect(hash.plana_mapa(delimiter: '_', symbolize_keys: true) { |k, _v| k }).
+        to eq([:a1, :a2_a3, :a2_a4_a5, :a2_a4_a6_0, :a2_a4_a6_1])
     end
   end
 end
