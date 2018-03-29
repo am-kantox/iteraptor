@@ -1,5 +1,7 @@
 require "iteraptor/version"
 
+# rubocop:disable Style/VariableNumber
+# rubocop:disable Metrics/ModuleLength
 module Iteraptor
   DELIMITER = '.'.freeze
 
@@ -8,10 +10,11 @@ module Iteraptor
   end
 
   %i[cada mapa].each do |m|
-    define_method m do |root = nil, parent = nil, &λ|
-      return enum_for(m, root, parent) unless λ
+    define_method m do |root = nil, parent = nil, yield_all: false, symbolize_keys: false, &λ|
+      return enum_for(m, root, parent, yield_all: yield_all, symbolize_keys: symbolize_keys) unless λ
+
       send_to = [Hash, Array, Enumerable].detect(&method(:is_a?))
-      send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, &λ)
+      send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, yield_all: yield_all, symbolize_keys: symbolize_keys, &λ)
     end
   end
 
@@ -56,12 +59,20 @@ module Iteraptor
   end
 
   def recoger delimiter: DELIMITER, symbolize_keys: false
-    cada.with_object({}) do |(parent, element), acc|
-      key = parent.tr(DELIMITER, delimiter)
-      key = key.to_sym if symbolize_keys
-      acc[key] = element unless element.is_a?(Enumerable)
-      yield key, element if block_given?
+    # rubocop:disable Style/MultilineBlockChain
+    aplanar.each_with_object(
+      Hash.new { |h, k| h[k] = h.clone.clear }
+    ) do |(k, v), acc|
+      keys = k.split(delimiter)
+      parent = keys[0..-2].reduce(acc){ |h, kk| h[kk] }
+      parent[keys.last] = v
+    end.mapa(symbolize_keys: symbolize_keys, yield_all: true) do |parent, (k, v)|
+      # puts [parent, k, v].inspect
+      # # binding.pry if v.is_a?(Hash)
+      # v = v.values if v.is_a?(Hash) && v.keys.map(&:to_i).sort == (0...v.keys.size).to_a
+      [k, v]
     end
+    # rubocop:enable Style/MultilineBlockChain
   end
 
   def plana_mapa delimiter: DELIMITER, symbolize_keys: false
@@ -89,7 +100,7 @@ module Iteraptor
     end
   end
 
-  def cada_in_array root = nil, parent = nil
+  def cada_in_array root = nil, parent = nil, **_
     λ = Proc.new
     each.with_index do |e, idx|
       [parent, idx].compact.join(DELIMITER).tap do |p|
@@ -100,7 +111,7 @@ module Iteraptor
   end
   alias cada_in_enumerable cada_in_array
 
-  def cada_in_hash root = nil, parent = nil
+  def cada_in_hash root = nil, parent = nil, **_
     λ = Proc.new
     each do |k, v|
       [parent, k].compact.join(DELIMITER).tap do |p|
@@ -112,37 +123,68 @@ module Iteraptor
 
   ##############################################################################
   ### mapa
-  def mapa_in_array root = nil, parent = nil, with_index: false
+  # FIXME what happens if I return nil from mapa in array?
+  def mapa_in_array root = nil, parent = nil, with_index: false, yield_all:, symbolize_keys:
     λ = Proc.new
 
     map.with_index do |e, idx|
       p = [parent, idx].compact.join(DELIMITER)
 
+      e = yield p, (with_index ? [idx.to_s, e] : e) if !e.is_a?(Enumerable) || yield_all
+
       case e
-      when Iteraptor then e.mapa(root, p, &λ)
+      when Iteraptor then e.mapa(root, p, yield_all: yield_all, symbolize_keys: symbolize_keys, &λ)
       when Enumerable then e.map(&λ.curry[p])
-      else yield p, (with_index ? [idx.to_s, e] : e)
+      else e
       end
     end
   end
   alias mapa_in_enumerable mapa_in_array
 
-  def mapa_in_hash root = nil, parent = nil
+  def mapa_in_hash root = nil, parent = nil, yield_all:, symbolize_keys:
     λ = Proc.new
 
     map do |k, v|
       p = [parent, k].compact.join(DELIMITER)
 
+      k, v = yield p, [k, v] if !v.is_a?(Enumerable) || yield_all
+
+      # rubocop:disable Style/NestedTernaryOperator
+      # rubocop:disable Style/RescueModifier
+      # rubocop:disable Metrics/BlockNesting
       case v
-      when Iteraptor then [k, v.mapa(root, p, &λ)]
+      when Iteraptor then [k, v.mapa(root, p, yield_all: yield_all, symbolize_keys: symbolize_keys, &λ)]
       when Enumerable then [k, v.map(&λ.curry[p])]
-      else yield p, [k, v]
+      else k.nil? ? nil : [symbolize_keys ? (k.to_sym rescue k) : k, v]
       end
-    end.compact.to_h
+      # rubocop:enable Metrics/BlockNesting
+      # rubocop:enable Style/RescueModifier
+      # rubocop:enable Style/NestedTernaryOperator
+    end.compact.send(:to_hash_or_array)
   end
 
   ##############################################################################
   ### filter
+  def to_hash_or_array
+    # rubocop:disable Style/MultilineTernaryOperator
+    # rubocop:disable Style/RescueModifier
+    receiver =
+      is_a?(Array) &&
+        all? { |e| e.is_a?(Enumerable) && e.size == 2 } &&
+        map(&:first).uniq.size == size ? (to_h rescue self) : self
+    # rubocop:enable Style/RescueModifier
+
+    receiver.is_a?(Hash) &&
+      receiver.keys.each_with_index.all? { |key, idx| key == idx.to_s } ?
+      receiver.values : receiver
+    # rubocop:enable Style/MultilineTernaryOperator
+  end
+
+  HASH_TO_ARRAY_ERROR_MSG = %(undefined method `hash_to_array?' for "%s":%s).freeze
+  def hash_to_hash_or_array
+    raise NoMethodError, HASH_TO_ARRAY_ERROR_MSG % [inspect, self.class] unless is_a?(Hash)
+  end
+
   def mapa_filtered select = true
 
   end

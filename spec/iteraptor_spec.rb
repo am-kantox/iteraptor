@@ -160,6 +160,12 @@ describe Iteraptor do
         to eq(:"0"=>:a1, :"1_a2"=>42, :"1_a3"=>3.1415, :"1_a4_0"=>:a5,
               :"1_a4_1"=>true, :"1_a6_a7"=>42, :"2_0"=>:a8, :"2_1"=>:a9, :"3"=>:a10)
     end
+
+    it 'does not ruins the single-level hash/array' do
+      expect({foo: :bar}.aplanar(symbolize_keys: true)).to eq(foo: :bar)
+      expect({foo: :bar}.aplanar).to eq("foo" => :bar)
+      expect([1, 2, 3].aplanar).to eq({"0"=>1, "1"=>2, "2"=>3})
+    end
   end
 
   describe 'recoger' do
