@@ -129,12 +129,14 @@ describe Iteraptor do
   describe 'segar' do
     describe 'nest' do
       it 'filters keys out' do
-        expect(nest.segar(/subkey/)).to eq({})
+        expect(nest.segar(/subkey/, symbolize_keys: true)).
+          to eq(top: {:key=>42}, keys: ["1", "2", "3"])
       end
       it 'calls back' do
-        expect(nest.segar(:key) do |key, value|
+        expect(nest.segar(:key, soft_keys: true) do |key, value|
           puts "Key is: #{key}, Value is: #{value}"
-        end).to eq("top.key" => 42, "top.subkey.key" => 3.1415)
+          value
+        end).to eq("keys" => ["1", "2", "3"])
         expect(nest.segar('key').to_a).to match_array [["top.key", 42], ["top.subkey.key", 3.1415]]
         expect(nest.segar([:subkey, :key]).to_a).to match_array [["top.subkey.key", 3.1415]]
         expect(nest.segar(/key/).to_a).to match_array [["keys", [:key, :key]], ["keys.0", :key], ["keys.1", :key],
