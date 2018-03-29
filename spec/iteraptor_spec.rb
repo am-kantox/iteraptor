@@ -19,7 +19,7 @@ describe Iteraptor do
   end
 
   let(:nest) do
-    { top: { key: 42, subkey: { key: 3.1415 } }, keys: [:key, :key] }
+    { top: { key: 42, subkey: { key: 3.1415 } }, keys: %w[1 2 3] }
   end
 
   let(:set) do
@@ -102,6 +102,15 @@ describe Iteraptor do
     end
   end
 
+  describe 'empty' do
+    it { expect({}.cada {|_, _| nil}).to eq({}) }
+    it { expect([].cada {|_, _| nil}).to eq([]) }
+    it { expect({}.mapa {|_, _| nil}).to eq({}) }
+    it { expect([].mapa {|_, _| nil}).to eq([]) }
+    it { expect({}.rechazar(//) {|*| nil}).to eq({}) }
+    it { expect([].escoger(//) {|*| nil}).to eq([]) }
+  end
+
   describe 'mapa' do
     it 'can not be calculated lazily' do
       expect(array.mapa).to be_a Enumerator
@@ -128,15 +137,19 @@ describe Iteraptor do
 
   describe 'segar' do
     describe 'nest' do
+      it 'filters keys out' do
+        expect(nest.escoger(/subkey/, symbolize_keys: true)).
+          to eq(top: {subkey: {key: 3.1415}})
+        expect(nest.rechazar(/subkey/, symbolize_keys: true)).
+          to eq(top: {:key=>42}, keys: ["1", "2", "3"])
+        expect(nest.segar(/subkey/, symbolize_keys: true)).
+          to eq(top: {subkey: {key: 3.1415}})
+      end
       it 'calls back' do
-        expect(nest.segar(:key) do |key, value|
+        expect(nest.rechazar(:key, soft_keys: true) do |key, value|
           puts "Key is: #{key}, Value is: #{value}"
-        end).to eq("top.key" => 42, "top.subkey.key" => 3.1415)
-        expect(nest.segar('key').to_a).to match_array [["top.key", 42], ["top.subkey.key", 3.1415]]
-        expect(nest.segar([:subkey, :key]).to_a).to match_array [["top.subkey.key", 3.1415]]
-        expect(nest.segar(/key/).to_a).to match_array [["keys", [:key, :key]], ["keys.0", :key], ["keys.1", :key],
-                                                       ["top.key", 42], ["top.subkey", { key: 3.1415 }],
-                                                       ["top.subkey.key", 3.1415]]
+          value
+        end).to eq("keys" => ["1", "2", "3"])
       end
     end
   end
@@ -156,6 +169,26 @@ describe Iteraptor do
       expect(array.aplanar delimiter: '_', symbolize_keys: true).
         to eq(:"0"=>:a1, :"1_a2"=>42, :"1_a3"=>3.1415, :"1_a4_0"=>:a5,
               :"1_a4_1"=>true, :"1_a6_a7"=>42, :"2_0"=>:a8, :"2_1"=>:a9, :"3"=>:a10)
+    end
+
+    it 'does not ruins the single-level hash/array' do
+      expect({foo: :bar}.aplanar(symbolize_keys: true)).to eq(foo: :bar)
+      expect({foo: :bar}.aplanar).to eq("foo" => :bar)
+      expect([1, 2, 3].aplanar).to eq({"0"=>1, "1"=>2, "2"=>3})
+    end
+  end
+
+  describe 'recoger' do
+    it 'works' do
+      expect({"top.key"=>42, "keys.0"=>"1", "keys.1"=>"2", "keys.2"=>"3"}.recoger(symbolize_keys: true)).
+        to eq(top: {key: 42}, keys: %w[1 2 3])
+    end
+
+    it 'is an exact reverse for aplanar' do
+      expect({top: {key: 42}, keys: %w[1 2 3]}.aplanar.recoger(symbolize_keys: true)).
+        to eq(top: {key: 42}, keys: %w[1 2 3])
+      expect({top: {key: 42}, keys: [1, {foo: 2}, 3]}.aplanar.recoger(symbolize_keys: true)).
+        to eq(top: {key: 42}, keys: [1, {foo: 2}, 3])
     end
   end
 
