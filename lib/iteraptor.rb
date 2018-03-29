@@ -10,11 +10,11 @@ module Iteraptor
   end
 
   %i[cada mapa].each do |m|
-    define_method m do |root = nil, parent = nil, yield_all: false, symbolize_keys: false, &λ|
-      return enum_for(m, root, parent, yield_all: yield_all, symbolize_keys: symbolize_keys) unless λ
+    define_method m do |root = nil, parent = nil, yield_all: false, &λ|
+      return enum_for(m, root, parent, yield_all: yield_all) unless λ
 
       send_to = [Hash, Array, Enumerable].detect(&method(:is_a?))
-      send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, yield_all: yield_all, symbolize_keys: symbolize_keys, &λ)
+      send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, yield_all: yield_all, &λ)
     end
   end
 
@@ -66,7 +66,7 @@ module Iteraptor
       keys = k.split(delimiter)
       parent = keys[0..-2].reduce(acc){ |h, kk| h[kk] }
       parent[keys.last] = v
-    end.mapa(symbolize_keys: symbolize_keys, yield_all: true) do |parent, (k, v)|
+    end.mapa(yield_all: true) do |parent, (k, v)|
       # puts [parent, k, v].inspect
       # # binding.pry if v.is_a?(Hash)
       # v = v.values if v.is_a?(Hash) && v.keys.map(&:to_i).sort == (0...v.keys.size).to_a
@@ -124,7 +124,7 @@ module Iteraptor
   ##############################################################################
   ### mapa
   # FIXME what happens if I return nil from mapa in array?
-  def mapa_in_array root = nil, parent = nil, with_index: false, yield_all:, symbolize_keys:
+  def mapa_in_array root = nil, parent = nil, with_index: false, yield_all: false
     λ = Proc.new
 
     map.with_index do |e, idx|
@@ -133,7 +133,7 @@ module Iteraptor
       e = yield p, (with_index ? [idx.to_s, e] : e) if !e.is_a?(Enumerable) || yield_all
 
       case e
-      when Iteraptor then e.mapa(root, p, yield_all: yield_all, symbolize_keys: symbolize_keys, &λ)
+      when Iteraptor then e.mapa(root, p, yield_all: yield_all, &λ)
       when Enumerable then e.map(&λ.curry[p])
       else e
       end
@@ -141,7 +141,7 @@ module Iteraptor
   end
   alias mapa_in_enumerable mapa_in_array
 
-  def mapa_in_hash root = nil, parent = nil, yield_all:, symbolize_keys:
+  def mapa_in_hash root = nil, parent = nil, yield_all: false
     λ = Proc.new
 
     map do |k, v|
@@ -149,17 +149,11 @@ module Iteraptor
 
       k, v = yield p, [k, v] if !v.is_a?(Enumerable) || yield_all
 
-      # rubocop:disable Style/NestedTernaryOperator
-      # rubocop:disable Style/RescueModifier
-      # rubocop:disable Metrics/BlockNesting
       case v
-      when Iteraptor then [k, v.mapa(root, p, yield_all: yield_all, symbolize_keys: symbolize_keys, &λ)]
+      when Iteraptor then [k, v.mapa(root, p, yield_all: yield_all, &λ)]
       when Enumerable then [k, v.map(&λ.curry[p])]
-      else k.nil? ? nil : [symbolize_keys ? (k.to_sym rescue k) : k, v]
+      else k.nil? ? nil : [k, v]
       end
-      # rubocop:enable Metrics/BlockNesting
-      # rubocop:enable Style/RescueModifier
-      # rubocop:enable Style/NestedTernaryOperator
     end.compact.send(:to_hash_or_array)
   end
 
