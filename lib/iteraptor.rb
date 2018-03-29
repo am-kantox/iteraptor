@@ -10,12 +10,12 @@ module Iteraptor
   end
 
   %i[cada mapa].each do |m|
-    define_method m do |root = nil, parent = nil, **params, &λ|
-      return enum_for(m, root, parent, **params) unless λ
+    define_method m do |key = nil, value = nil, **params, &λ|
+      return enum_for(m, key, value, **params) unless λ
       return self if empty?
 
       send_to = [Hash, Array, Enumerable].detect(&method(:is_a?))
-      send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, **params, &λ)
+      send_to && send("#{m}_in_#{send_to.name.downcase}", key || self, value, **params, &λ)
     end
   end
 
@@ -33,23 +33,22 @@ module Iteraptor
   alias_method :segar, :escoger
   # rubocop:enable Style/Alias
 
-  def aplanar delimiter: DELIMITER, **params
+  def aplanar **params
     return self if empty?
-    cada.with_object({}) do |(parent, element), acc|
-      key = parent.tr(DELIMITER, delimiter)
+    cada(**params).with_object({}) do |(key, value), acc|
       key = key.to_sym if params[:symbolize_keys]
-      acc[key] = element unless element.is_a?(Enumerable)
-      yield key, element if block_given?
+      acc[key] = value unless value.is_a?(Enumerable)
+      yield key, value if block_given?
     end
   end
 
-  def recoger delimiter: DELIMITER, **params
+  def recoger **params
     return self if empty?
     # rubocop:disable Style/MultilineBlockChain
-    aplanar.each_with_object(
+    aplanar(**params).each_with_object(
       Hash.new { |h, k| h[k] = h.clone.clear }
     ) do |(k, v), acc|
-      keys = k.split(delimiter)
+      keys = k.to_s.split(params[:delimiter] || DELIMITER)
       parent = keys[0..-2].reduce(acc){ |h, kk| h[kk] }
       parent[keys.last] = v
     end.mapa(yield_all: true, **params) do |_parent, (k, v)|
@@ -58,14 +57,13 @@ module Iteraptor
     # rubocop:enable Style/MultilineBlockChain
   end
 
-  def plana_mapa delimiter: DELIMITER, **params
-    return enum_for(:plana_mapa, delimiter: delimiter, **params) unless block_given?
+  def plana_mapa **params
+    return enum_for(:plana_mapa, delimiter: params[:delimiter], **params) unless block_given?
     return self if empty?
 
-    cada.with_object([]) do |(parent, element), acc|
-      key = parent.tr(DELIMITER, delimiter)
+    cada(**params).with_object([]) do |(key, value), acc|
       key = key.to_sym if params[:symbolize_keys]
-      acc << yield(key, element) unless element.is_a?(Enumerable)
+      acc << yield(key, value) unless value.is_a?(Enumerable)
     end
   end
 
@@ -73,30 +71,30 @@ module Iteraptor
 
   ##############################################################################
   ### cada
-  CADA_PROC = lambda do |e, root, p, &λ|
+  CADA_PROC = lambda do |e, root, p, **params, &λ|
     case e
-    when Iteraptor then e.cada(root, p, &λ)
+    when Iteraptor then e.cada(root, p, **params, &λ)
     when Enumerable then e.each(&λ.curry[p])
     end
   end
 
-  def cada_in_array root = nil, parent = nil, **_
+  def cada_in_array root = nil, parent = nil, **params
     λ = Proc.new
     each.with_index do |e, idx|
-      [parent, idx].compact.join(DELIMITER).tap do |p|
+      [parent, idx].compact.join(params[:delimiter] || DELIMITER).tap do |p|
         yield p, e
-        CADA_PROC.call(e, root, p, &λ)
+        CADA_PROC.call(e, root, p, **params, &λ)
       end
     end
   end
   alias cada_in_enumerable cada_in_array
 
-  def cada_in_hash root = nil, parent = nil, **_
+  def cada_in_hash root = nil, parent = nil, **params
     λ = Proc.new
     each do |k, v|
-      [parent, k].compact.join(DELIMITER).tap do |p|
+      [parent, k].compact.join(params[:delimiter] || DELIMITER).tap do |p|
         yield p, v
-        CADA_PROC.call(v, root, p, &λ)
+        CADA_PROC.call(v, root, p, **params, &λ)
       end
     end
   end
@@ -112,7 +110,7 @@ module Iteraptor
     λ = Proc.new
 
     map.with_index do |e, idx|
-      p = [parent, idx].compact.join(DELIMITER)
+      p = [parent, idx].compact.join(params[:delimiter] || DELIMITER)
 
       e = yield p, (params[:with_index] ? [idx.to_s, e] : e) if !e.is_a?(Enumerable) || params[:yield_all]
 
@@ -132,7 +130,7 @@ module Iteraptor
     λ = Proc.new
 
     map do |k, v|
-      p = [parent, k].compact.join(DELIMITER)
+      p = [parent, k].compact.join(params[:delimiter] || DELIMITER)
 
       k, v = yield p, [k, v] if !v.is_a?(Enumerable) || params[:yield_all]
 
@@ -179,7 +177,7 @@ module Iteraptor
 
     plough = method ? :none? : :any?
     aplanar.each_with_object({}) do |(key, value), acc|
-      to_match = key.split(DELIMITER)
+      to_match = key.split(params[:delimiter] || DELIMITER)
       to_match = to_match.flat_map { |k| [k.to_s, k.to_s.to_sym] } if params[:soft_keys]
 
       next if filter.public_send(plough, &->(f){ to_match.any?(&f.method(:===)) })
