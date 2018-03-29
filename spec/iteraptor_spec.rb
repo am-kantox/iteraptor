@@ -102,6 +102,15 @@ describe Iteraptor do
     end
   end
 
+  describe 'empty' do
+    it { expect({}.cada {|_, _| nil}).to eq({}) }
+    it { expect([].cada {|_, _| nil}).to eq([]) }
+    it { expect({}.mapa {|_, _| nil}).to eq({}) }
+    it { expect([].mapa {|_, _| nil}).to eq([]) }
+    it { expect({}.rechazar(//) {|*| nil}).to eq({}) }
+    it { expect([].escoger(//) {|*| nil}).to eq([]) }
+  end
+
   describe 'mapa' do
     it 'can not be calculated lazily' do
       expect(array.mapa).to be_a Enumerator
@@ -173,6 +182,13 @@ describe Iteraptor do
     it 'works' do
       expect({"top.key"=>42, "keys.0"=>"1", "keys.1"=>"2", "keys.2"=>"3"}.recoger(symbolize_keys: true)).
         to eq(top: {key: 42}, keys: %w[1 2 3])
+    end
+
+    it 'is an exact reverse for aplanar' do
+      expect({top: {key: 42}, keys: %w[1 2 3]}.aplanar.recoger(symbolize_keys: true)).
+        to eq(top: {key: 42}, keys: %w[1 2 3])
+      expect({top: {key: 42}, keys: [1, {foo: 2}, 3]}.aplanar.recoger(symbolize_keys: true)).
+        to eq(top: {key: 42}, keys: [1, {foo: 2}, 3])
     end
   end
 

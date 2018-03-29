@@ -12,13 +12,20 @@ module Iteraptor
   %i[cada mapa].each do |m|
     define_method m do |root = nil, parent = nil, **params, &λ|
       return enum_for(m, root, parent, **params) unless λ
+      return self if empty?
 
       send_to = [Hash, Array, Enumerable].detect(&method(:is_a?))
       send_to && send("#{m}_in_#{send_to.name.downcase}", root || self, parent, **params, &λ)
     end
   end
 
+  def rechazar *filter, **params
+    return self if empty?
+    rechazar_o_escoger false, *filter, **params
+  end
+
   def escoger *filter, **params
+    return self if empty?
     rechazar_o_escoger true, *filter, **params
   end
 
@@ -26,11 +33,8 @@ module Iteraptor
   alias_method :segar, :escoger
   # rubocop:enable Style/Alias
 
-  def rechazar *filter, **params
-    rechazar_o_escoger false, *filter, **params
-  end
-
   def aplanar delimiter: DELIMITER, **params
+    return self if empty?
     cada.with_object({}) do |(parent, element), acc|
       key = parent.tr(DELIMITER, delimiter)
       key = key.to_sym if params[:symbolize_keys]
@@ -40,6 +44,7 @@ module Iteraptor
   end
 
   def recoger delimiter: DELIMITER, **params
+    return self if empty?
     # rubocop:disable Style/MultilineBlockChain
     aplanar.each_with_object(
       Hash.new { |h, k| h[k] = h.clone.clear }
@@ -55,6 +60,7 @@ module Iteraptor
 
   def plana_mapa delimiter: DELIMITER, **params
     return enum_for(:plana_mapa, delimiter: delimiter, **params) unless block_given?
+    return self if empty?
 
     cada.with_object([]) do |(parent, element), acc|
       key = parent.tr(DELIMITER, delimiter)

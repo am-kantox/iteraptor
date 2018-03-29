@@ -38,8 +38,11 @@ element;
 whatever it is; `nil`s are not treated in some special way
 * `aplanar` (_sp._ `flatten`) the analogue of `Array#flatten`, but flattens
 the deep enumerable into `Hash` instance
+* `recoger` (_sp._ `harvest`, `collect`) the opposite to `aplanar`, it builds
+the nested structure out of flattened hash
 * `segar` (_sp._ `yield`), alias `escoger` (_sp._ `select`) allows to filter
-and collect elelements.
+and collect elelements
+* `rechazar` (_sp._ `reject`) allows to filter out and collect elelements.
 
 ### Iteration
 
