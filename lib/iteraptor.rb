@@ -171,7 +171,7 @@ module Iteraptor
   def rechazar_o_escoger method, *filter, **params
     raise ArgumentError, "no filter given in call to #{method ? :escoger : :rechazar}" if filter.empty?
 
-    plough = method ? :any? : :none?
+    plough = method ? :none? : :any?
     aplanar.each_with_object({}) do |(key, value), acc|
       to_match = key.split(DELIMITER)
       to_match = to_match.flat_map { |k| [k.to_s, k.to_s.to_sym] } if params[:soft_keys]
