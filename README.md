@@ -44,6 +44,50 @@ the nested structure out of flattened hash
 and collect elelements
 * `rechazar` (_sp._ `reject`) allows to filter out and collect elelements.
 
+### Words are cheap, show me the code
+
+```ruby
+▶ require 'iteraptor'
+#⇒ true
+
+▶ hash = {company: {name: "Me", currencies: ["A", "B", "C"],
+▷         password: "12345678",
+▷         details: {another_password: "QWERTYUI"}}}
+#⇒ {:company=>{:name=>"Me", :currencies=>["A", "B", "C"],
+#              :password=>"12345678",
+#              :details=>{:another_password=>"QWERTYUI"}}}
+
+▶ hash.segar(/password/i) { "*" * 8 }
+#⇒ {"company"=>{"password"=>"********",
+#   "details"=>{"another_password"=>"********"}}}
+
+▶ hash.segar(/password/i) { |*args| puts args.inspect }
+["company.password", "12345678"]
+["company.details.another_password", "QWERTYUI"]
+#⇒ {"company"=>{"password"=>nil, "details"=>{"another_password"=>nil}}}
+
+▶ hash.rechazar(/password/)
+#⇒ {"company"=>{"name"=>"Me", "currencies"=>["A", "B", "C"]}}
+
+▶ hash.aplanar
+#⇒ {"company.name"=>"Me",
+#   "company.currencies.0"=>"A",
+#   "company.currencies.1"=>"B",
+#   "company.currencies.2"=>"C",
+#   "company.password"=>"12345678",
+#   "company.details.another_password"=>"QWERTYUI"}
+
+▶ hash.aplanar.recoger
+#⇒ {"company"=>{"name"=>"Me", "currencies"=>["A", "B", "C"],
+#   "password"=>"12345678",
+#   "details"=>{"another_password"=>"QWERTYUI"}}}
+
+▶ hash.aplanar.recoger(symbolize_keys: true)
+#⇒ {:company=>{:name=>"Me", :currencies=>["A", "B", "C"],
+#   :password=>"12345678",
+#   :details=>{:another_password=>"QWERTYUI"}}}
+```
+
 ### Iteration
 
 `Iteraptor#cada` iterates all the `Enumerable` elements, recursively. As it meets
