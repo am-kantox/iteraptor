@@ -19,14 +19,14 @@ module Iteraptor
     end
   end
 
-  def rechazar *filter, **params
+  def rechazar *filter, **params, &λ
     return self if empty?
-    rechazar_o_escoger false, *filter, **params
+    rechazar_o_escoger false, *filter, **params, &λ
   end
 
-  def escoger *filter, **params
+  def escoger *filter, **params, &λ
     return self if empty?
-    rechazar_o_escoger true, *filter, **params
+    rechazar_o_escoger true, *filter, **params, &λ
   end
 
   # rubocop:disable Style/Alias
