@@ -14,7 +14,7 @@ module Iteraptor
       return enum_for(m, key, value, **params) unless λ
       return self if empty?
 
-      send_to = [Hash, Array, Enumerable].detect(&method(:is_a?))
+      send_to = enumerable_parent?
       send_to && send("#{m}_in_#{send_to.name.downcase}", key || self, value, **params, &λ)
     end
   end
@@ -78,20 +78,18 @@ module Iteraptor
     end
   end
 
-  def cada_in_array root = nil, parent = nil, **params
-    λ = Proc.new
-    each.with_index do |e, idx|
-      [parent, idx].compact.join(params[:delimiter] || DELIMITER).tap do |p|
-        yield p, e
-        CADA_PROC.call(e, root, p, **params, &λ)
-      end
-    end
+  def cada_in_array root = nil, parent = nil, **params, &λ
+    cada_in_array_or_hash true, root, parent, **params, &λ
   end
   alias cada_in_enumerable cada_in_array
 
-  def cada_in_hash root = nil, parent = nil, **params
-    λ = Proc.new
-    each do |k, v|
+  def cada_in_hash root = nil, parent = nil, **params, &λ
+    cada_in_array_or_hash false, root, parent, **params, &λ
+  end
+
+  def cada_in_array_or_hash in_array, root = nil, parent = nil, **params, &λ
+    (in_array ? each_with_index : each).each do |k, v|
+      k, v = v, k if in_array
       [parent, k].compact.join(params[:delimiter] || DELIMITER).tap do |p|
         yield p, v
         CADA_PROC.call(v, root, p, **params, &λ)
@@ -99,25 +97,31 @@ module Iteraptor
     end
   end
 
-  ##############################################################################
+    ##############################################################################
   ### mapa
   # FIXME what happens if I return nil from mapa in array?
   # Params:
   #  - with_index
   #  - yield_all
   #  - symbolize_keys
-  def mapa_in_array root = nil, parent = nil, **params
-    λ = Proc.new
-
+  def mapa_in_array root = nil, parent = nil, **params, &λ
     map.with_index do |e, idx|
       p = [parent, idx].compact.join(params[:delimiter] || DELIMITER)
 
-      e = yield p, (params[:with_index] ? [idx.to_s, e] : e) if !e.is_a?(Enumerable) || params[:yield_all]
+      yielded =
+        if !enumerable_parent?(e) || params[:yield_all]
+          yield p, (params[:with_index] ? [idx.to_s, e] : e)
+        else
+          e
+        end
+      # allow blindly return [k, v] instead of check for an array instance
+      #  when block arguments are matched as (k, v)
+      yielded = yielded.first if yielded.is_a?(Array) && yielded.size == 2 && yielded.last.nil?
 
-      case e
-      when Iteraptor then e.mapa(root, p, **params, &λ)
-      when Enumerable then e.map(&λ.curry[p])
-      else e
+      case yielded
+      when Iteraptor then yielded.mapa(root, p, **params, &λ)
+      when Enumerable then yielded.map(&λ.curry[p])
+      else yielded
       end
     end
   end
@@ -126,9 +130,7 @@ module Iteraptor
   # Params:
   #  - yield_all
   #  - symbolize_keys
-  def mapa_in_hash root = nil, parent = nil, **params
-    λ = Proc.new
-
+  def mapa_in_hash root = nil, parent = nil, **params, &λ
     map do |k, v|
       p = [parent, k].compact.join(params[:delimiter] || DELIMITER)
 
@@ -189,6 +191,9 @@ module Iteraptor
 
   ##############################################################################
   ### helpers
+  def enumerable_parent?(receiver = self)
+    [Hash, Array, Enumerable].detect(&receiver.method(:is_a?))
+  end
   def leaf? e
     [Iteraptor, Enumerable].none?(&e.method(:is_a?))
   end
