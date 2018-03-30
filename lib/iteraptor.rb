@@ -36,6 +36,7 @@ module Iteraptor
   def aplanar **params
     return self if empty?
     cada(**params).with_object({}) do |(key, value), acc|
+      key = key.join(iteraptor_delimiter(params)) if params[:full_parent]
       key = key.to_sym if params[:symbolize_keys]
       acc[key] = value unless value.is_a?(Enumerable)
       yield key, value if block_given?
@@ -48,7 +49,7 @@ module Iteraptor
     aplanar(**params).each_with_object(
       Hash.new { |h, k| h[k] = h.clone.clear }
     ) do |(k, v), acc|
-      keys = k.to_s.split(params[:delimiter] || DELIMITER)
+      keys = k.to_s.split(iteraptor_delimiter(params))
       parent = keys[0..-2].reduce(acc){ |h, kk| h[kk] }
       parent[keys.last] = v
     end.mapa(yield_all: true, **params) do |_parent, (k, v)|
@@ -62,6 +63,7 @@ module Iteraptor
     return self if empty?
 
     cada(**params).with_object([]) do |(key, value), acc|
+      key = key.join(iteraptor_delimiter(params)) if params[:full_parent]
       key = key.to_sym if params[:symbolize_keys]
       acc << yield(key, value) unless value.is_a?(Enumerable)
     end
@@ -90,14 +92,16 @@ module Iteraptor
   def cada_in_array_or_hash in_array, root = nil, parent = nil, **params, &λ
     (in_array ? each_with_index : each).each do |k, v|
       k, v = v, k if in_array
-      [parent, k].compact.join(params[:delimiter] || DELIMITER).tap do |p|
+      result = [parent, k].flatten.compact
+      result = result.join(iteraptor_delimiter(params)) unless params[:full_parent]
+      result.tap do |p|
         yield p, v
         CADA_PROC.call(v, root, p, **params, &λ)
       end
     end
   end
 
-    ##############################################################################
+  ##############################################################################
   ### mapa
   # FIXME what happens if I return nil from mapa in array?
   # Params:
@@ -106,7 +110,8 @@ module Iteraptor
   #  - symbolize_keys
   def mapa_in_array root = nil, parent = nil, **params, &λ
     map.with_index do |e, idx|
-      p = [parent, idx].compact.join(params[:delimiter] || DELIMITER)
+      p = [parent, idx].flatten.compact
+      p = p.join(iteraptor_delimiter(params)) unless params[:full_parent]
 
       yielded =
         if !enumerable_parent?(e) || params[:yield_all]
@@ -116,7 +121,8 @@ module Iteraptor
         end
       # allow blindly return [k, v] instead of check for an array instance
       #  when block arguments are matched as (k, v)
-      yielded = yielded.first if yielded.is_a?(Array) && yielded.size == 2 && yielded.last.nil?
+      yielded = yielded.last || yielded.first if
+        yielded.is_a?(Array) && yielded.size == 2 && (yielded.last.nil? || yielded.first == e)
 
       case yielded
       when Iteraptor then yielded.mapa(root, p, **params, &λ)
@@ -132,7 +138,8 @@ module Iteraptor
   #  - symbolize_keys
   def mapa_in_hash root = nil, parent = nil, **params, &λ
     map do |k, v|
-      p = [parent, k].compact.join(params[:delimiter] || DELIMITER)
+      p = [parent, k].flatten.compact
+      p = p.join(iteraptor_delimiter(params)) unless params[:full_parent]
 
       k, v = yield p, [k, v] if !v.is_a?(Enumerable) || params[:yield_all]
 
@@ -178,8 +185,8 @@ module Iteraptor
     raise ArgumentError, "no filter given in call to #{method ? :escoger : :rechazar}" if filter.empty?
 
     plough = method ? :none? : :any?
-    aplanar.each_with_object({}) do |(key, value), acc|
-      to_match = key.split(params[:delimiter] || DELIMITER)
+    aplanar(**params).each_with_object({}) do |(key, value), acc|
+      to_match = key.to_s.split(iteraptor_delimiter(params)) unless params[:full_parent]
       to_match = to_match.flat_map { |k| [k.to_s, k.to_s.to_sym] } if params[:soft_keys]
 
       next if filter.public_send(plough, &->(f){ to_match.any?(&f.method(:===)) })
@@ -193,6 +200,9 @@ module Iteraptor
   ### helpers
   def enumerable_parent?(receiver = self)
     [Hash, Array, Enumerable].detect(&receiver.method(:is_a?))
+  end
+  def iteraptor_delimiter(params)
+    params[:delimiter] || DELIMITER
   end
   def leaf? e
     [Iteraptor, Enumerable].none?(&e.method(:is_a?))

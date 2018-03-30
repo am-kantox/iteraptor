@@ -190,7 +190,9 @@ Or install it yourself as:
 
 ## Changelog
 
-#### 0.4.0 `aplanar` and `plana_mapa`
+- **`0.6.0`** — experimental support for `full_parent: true` param
+- **`0.5.0`** — `rechazar` and `escoger`
+- **`0.4.0`** — `aplanar` and `plana_mapa`
 
 ## Development
 
