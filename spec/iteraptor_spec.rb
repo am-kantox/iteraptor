@@ -125,6 +125,9 @@ describe Iteraptor do
           e.is_a?(Array) ? [e.first, e.last * 2] : e
         end).to eq array_mapa
       end
+      it 'does not stack overflows' do
+        expect(array.mapa { |_, (k, v)| [k, v] }).to be_a Array
+      end
     end
     describe 'hash' do
       it 'maps the elements correctly' do
