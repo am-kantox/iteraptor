@@ -127,6 +127,22 @@ describe Iteraptor do
       end
       it 'does not stack overflows' do
         expect(array.mapa { |_, (k, v)| [k, v] }).to be_a Array
+        expect(hash.mapa(full_parent: true) do |p, (key, value)|
+          v = p.join + " :: #{value || key}"
+          [key, v]
+        end).to eq(
+          :a1 => "a1 :: 42",
+          :a2 => {
+            :a3 => "a2a3 :: 42",
+            :a4 => {
+              :a5 => "a2a4a5 :: 42",
+              :a6 => [
+                "a2a4a60 :: a7",
+                "a2a4a61 :: a8"
+              ]
+            }
+          }
+        )
       end
     end
     describe 'hash' do
@@ -208,6 +224,24 @@ describe Iteraptor do
         to eq([42, 42, 42, :a7, :a8])
       expect(hash.plana_mapa(delimiter: '_', symbolize_keys: true) { |k, _v| k }).
         to eq([:a1, :a2_a3, :a2_a4_a5, :a2_a4_a6_0, :a2_a4_a6_1])
+    end
+  end
+
+  describe 'full_parent' do
+    it 'yields the array of keys' do
+      expect(hash.mapa(full_parent: true) do |p, (key, value)|
+        v = p.join('_')
+        value ? [key, v + " :: #{value}"] : v
+      end).to eq(
+        :a1 => "a1 :: 42",
+        :a2 => {
+          :a3 => "a2_a3 :: 42",
+          :a4 => {
+            :a5 => "a2_a4_a5 :: 42",
+            :a6 => ["a2_a4_a6_0", "a2_a4_a6_1"]
+          }
+        }
+      )
     end
   end
 end
