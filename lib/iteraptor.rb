@@ -3,7 +3,6 @@ require "iteraptor/version"
 # rubocop:disable Style/VariableNumber
 # rubocop:disable Metrics/ModuleLength
 module Iteraptor
-  DELIMITER = '.'.freeze
 
   def self.included base
     raise "This module might be included into Enumerables only" unless base.ancestors.include? Enumerable
@@ -14,7 +13,7 @@ module Iteraptor
       return enum_for(m, key, value, **params) unless λ
       return self if empty?
 
-      send_to = enumerable_parent?
+      send_to = H.enumerable_parent?(self)
       send_to && send("#{m}_in_#{send_to.name.downcase}", key || self, value, **params, &λ)
     end
   end
@@ -36,7 +35,7 @@ module Iteraptor
   def aplanar **params
     return self if empty?
     cada(**params).with_object({}) do |(key, value), acc|
-      key = key.join(iteraptor_delimiter(params)) if params[:full_parent]
+      key = key.join(H.iteraptor_delimiter(params)) if params[:full_parent]
       key = key.to_sym if params[:symbolize_keys]
       acc[key] = value unless value.is_a?(Enumerable)
       yield key, value if block_given?
@@ -49,7 +48,7 @@ module Iteraptor
     aplanar(**params).each_with_object(
       Hash.new { |h, k| h[k] = h.clone.clear }
     ) do |(k, v), acc|
-      keys = k.to_s.split(iteraptor_delimiter(params))
+      keys = k.to_s.split(H.iteraptor_delimiter(params))
       parent = keys[0..-2].reduce(acc){ |h, kk| h[kk] }
       parent[keys.last] = v
     end.mapa(yield_all: true, **params) do |_parent, (k, v)|
@@ -63,7 +62,7 @@ module Iteraptor
     return self if empty?
 
     cada(**params).with_object([]) do |(key, value), acc|
-      key = key.join(iteraptor_delimiter(params)) if params[:full_parent]
+      key = key.join(H.iteraptor_delimiter(params)) if params[:full_parent]
       key = key.to_sym if params[:symbolize_keys]
       acc << yield(key, value) unless value.is_a?(Enumerable)
     end
@@ -92,8 +91,8 @@ module Iteraptor
   def cada_in_array_or_hash in_array, root = nil, parent = nil, **params, &λ
     (in_array ? each_with_index : each).each do |k, v|
       k, v = v, k if in_array
-      result = [parent, k].flatten.compact
-      result = result.join(iteraptor_delimiter(params)) unless params[:full_parent]
+      result = H.push_flatten_compact(parent, k)
+      result = result.join(H.iteraptor_delimiter(params)) unless params[:full_parent]
       result.tap do |p|
         yield p, v
         CADA_PROC.call(v, root, p, **params, &λ)
@@ -110,11 +109,11 @@ module Iteraptor
   #  - symbolize_keys
   def mapa_in_array root = nil, parent = nil, **params, &λ
     map.with_index do |e, idx|
-      p = [parent, idx].flatten.compact
-      p = p.join(iteraptor_delimiter(params)) unless params[:full_parent]
+      p = H.push_flatten_compact(parent, idx)
+      p = p.join(H.iteraptor_delimiter(params)) unless params[:full_parent]
 
       yielded =
-        if !enumerable_parent?(e) || params[:yield_all]
+        if !H.enumerable_parent?(e) || params[:yield_all]
           yield p, (params[:with_index] ? [idx.to_s, e] : e)
         else
           e
@@ -138,8 +137,8 @@ module Iteraptor
   #  - symbolize_keys
   def mapa_in_hash root = nil, parent = nil, **params, &λ
     map do |k, v|
-      p = [parent, k].flatten.compact
-      p = p.join(iteraptor_delimiter(params)) unless params[:full_parent]
+      p = H.push_flatten_compact(parent, k)
+      p = p.join(H.iteraptor_delimiter(params)) unless params[:full_parent]
 
       k, v = yield p, [k, v] if !v.is_a?(Enumerable) || params[:yield_all]
 
@@ -153,9 +152,6 @@ module Iteraptor
 
   ##############################################################################
   ### helpers
-  def safe_symbolize key
-    key.respond_to?(:to_sym) ? key.to_sym : key
-  end
 
   def to_hash_or_array **params
     # rubocop:disable Style/MultilineTernaryOperator
@@ -170,7 +166,7 @@ module Iteraptor
     return receiver.values if receiver.keys.each_with_index.all? { |key, idx| key == idx.to_s }
     return receiver unless params[:symbolize_keys]
 
-    receiver.map { |k, v| [safe_symbolize(k), v] }.to_h
+    receiver.map { |k, v| [H.safe_symbolize(k), v] }.to_h
     # rubocop:enable Style/MultilineTernaryOperator
   end
 
@@ -186,7 +182,7 @@ module Iteraptor
 
     plough = method ? :none? : :any?
     aplanar(**params).each_with_object({}) do |(key, value), acc|
-      to_match = key.to_s.split(iteraptor_delimiter(params)) unless params[:full_parent]
+      to_match = key.to_s.split(H.iteraptor_delimiter(params)) unless params[:full_parent]
       to_match = to_match.flat_map { |k| [k.to_s, k.to_s.to_sym] } if params[:soft_keys]
 
       next if filter.public_send(plough, &->(f){ to_match.any?(&f.method(:===)) })
@@ -198,14 +194,27 @@ module Iteraptor
 
   ##############################################################################
   ### helpers
-  def enumerable_parent?(receiver = self)
-    [Hash, Array, Enumerable].detect(&receiver.method(:is_a?))
-  end
-  def iteraptor_delimiter(params)
-    params[:delimiter] || DELIMITER
-  end
-  def leaf? e
-    [Iteraptor, Enumerable].none?(&e.method(:is_a?))
+  module H
+    class << self
+      DELIMITER = '.'.freeze
+
+      def safe_symbolize key
+        key.respond_to?(:to_sym) ? key.to_sym : key
+      end
+      def iteraptor_delimiter(params)
+        params[:delimiter] || DELIMITER
+      end
+      def push_flatten_compact array, tail
+        case array
+        when NilClass then [tail]
+        when Array then array + [tail]
+        else [array, tail]
+        end.compact
+      end
+      def enumerable_parent?(receiver)
+        [Hash, Array, Enumerable].detect(&receiver.method(:is_a?))
+      end
+    end
   end
 end
 
