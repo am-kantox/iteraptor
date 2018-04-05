@@ -16,6 +16,8 @@ large objects.
 require 'iteraptor'
 ```
 
+**[Blog post](http://rocket-science.ru/hacking/2018/03/29/iteraptor-for-the-rescue) with detailed API documentation.**
+
 `Iteraptor` is intended to be used for iteration of complex nested structures.
 The yielder is being called with two parameters: “current key” and “current value.”
 The key is an index (converted to string for convenience) of an element for any
