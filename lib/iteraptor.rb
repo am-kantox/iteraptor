@@ -8,6 +8,10 @@ module Iteraptor
     raise "This module might be included into Enumerables only" unless base.ancestors.include? Enumerable
   end
 
+  def iteraptor
+    @__iteraptor__ ||= Iteraptor::Delegator.new(self)
+  end
+
   %i[cada mapa].each do |m|
     define_method m do |key = nil, value = nil, **params, &λ|
       return enum_for(m, key, value, **params) unless λ
@@ -201,9 +205,11 @@ module Iteraptor
       def safe_symbolize key
         key.respond_to?(:to_sym) ? key.to_sym : key
       end
+
       def iteraptor_delimiter(params)
         params[:delimiter] || DELIMITER
       end
+
       def push_flatten_compact array, tail
         case array
         when NilClass then [tail]
@@ -211,6 +217,7 @@ module Iteraptor
         else [array, tail]
         end.compact
       end
+
       def enumerable_parent?(receiver)
         [Hash, Array, Enumerable].detect(&receiver.method(:is_a?))
       end
@@ -219,3 +226,4 @@ module Iteraptor
 end
 
 require 'iteraptor/greedy'
+require 'iteraptor/delegator'

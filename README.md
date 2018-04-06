@@ -29,6 +29,22 @@ latter is just a dot in current release.
 
 ## Features
 
+### Boring (for users who are too conservative)
+
+```ruby
+enum = [{foo: {bar: [:baz, 42]}}, [:foo, {bar: {baz: 42}}]].random
+
+* `hash.iteraptor.each(**params, ->(full_key, value))`
+* `hash.iteraptor.map(**params, ->(full_key, (key, value)))`
+* `hash.iteraptor.select(*filters, **params, ->(full_key, value)`
+* `hash.iteraptor.reject(*filters, **params, ->(full_key, value)`
+* `hash.iteraptor.flat_map(**params, ->(full_key, value))`
+* `hash.iteraptor.flatten(**params, ->(full_key, value))`
+* `hash.iteraptor.collect(**params, ->(full_key, value))`
+```
+
+### Direct 🐒 patching in 🇪🇸
+
 * `cada` (_sp._ `each`) iterates through all the levels of the nested `Enumerable`,
 yielding `parent, element` tuple; parent is returned as a delimiter-joined string
 * `mapa` (_sp._ `map`) iterates all the elements, yielding `parent, (key, value)`;
