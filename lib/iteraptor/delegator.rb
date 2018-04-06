@@ -10,7 +10,7 @@ module Iteraptor
       flatten: :aplanar,
       collect: :recoger,
       flat_map: :plana_mapa
-    }
+    }.freeze
 
     def initialize(receiver)
       @receiver = receiver
