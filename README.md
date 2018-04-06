@@ -34,13 +34,13 @@ latter is just a dot in current release.
 ```ruby
 enum = [{foo: {bar: [:baz, 42]}}, [:foo, {bar: {baz: 42}}]].random
 
-* `hash.iteraptor.each(**params, ->(full_key, value))`
-* `hash.iteraptor.map(**params, ->(full_key, (key, value)))`
-* `hash.iteraptor.select(*filters, **params, ->(full_key, value)`
-* `hash.iteraptor.reject(*filters, **params, ->(full_key, value)`
-* `hash.iteraptor.flat_map(**params, ->(full_key, value))`
-* `hash.iteraptor.flatten(**params, ->(full_key, value))`
-* `hash.iteraptor.collect(**params, ->(full_key, value))`
+— enum.iteraptor.each(**params, ->(full_key, value))
+— enum.iteraptor.map(**params, ->(full_key, (key, value)))
+— enum.iteraptor.select(*filters, **params, ->(full_key, value)
+— enum.iteraptor.reject(*filters, **params, ->(full_key, value)
+— enum.iteraptor.flat_map(**params, ->(full_key, value))
+— enum.iteraptor.flatten(**params, ->(full_key, value))
+— enum.iteraptor.collect(**params, ->(full_key, value))
 ```
 
 ### Direct 🐒 patching in 🇪🇸
