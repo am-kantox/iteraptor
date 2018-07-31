@@ -36,8 +36,9 @@ enum = [{foo: {bar: [:baz, 42]}}, [:foo, {bar: {baz: 42}}]].random
 
 — enum.iteraptor.each(**params, ->(full_key, value))
 — enum.iteraptor.map(**params, ->(full_key, (key, value)))
-— enum.iteraptor.select(*filters, **params, ->(full_key, value)
-— enum.iteraptor.reject(*filters, **params, ->(full_key, value)
+— enum.iteraptor.select(*filters, **params, ->(full_key, value))
+— enum.iteraptor.reject(*filters, **params, ->(full_key, value))
+— enum.iteraptor.compact(**params)
 — enum.iteraptor.flat_map(**params, ->(full_key, value))
 — enum.iteraptor.flatten(**params, ->(full_key, value))
 — enum.iteraptor.collect(**params, ->(full_key, value))
@@ -60,7 +61,8 @@ the deep enumerable into `Hash` instance
 the nested structure out of flattened hash
 * `segar` (_sp._ `yield`), alias `escoger` (_sp._ `select`) allows to filter
 and collect elelements
-* `rechazar` (_sp._ `reject`) allows to filter out and collect elelements.
+* `rechazar` (_sp._ `reject`) allows to filter out and collect elelements
+* `compactar` (_sp._ `compact`), allows to filter out all `nil`s
 
 ### Words are cheap, show me the code
 

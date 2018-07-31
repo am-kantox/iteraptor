@@ -6,6 +6,7 @@ module Iteraptor
 
       select: :escoger,
       reject: :rechazar,
+      compact: :compactar,
 
       flatten: :aplanar,
       collect: :recoger,

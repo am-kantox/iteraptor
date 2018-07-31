@@ -154,6 +154,13 @@ describe Iteraptor do
     end
   end
 
+  describe 'compactar' do
+    it 'compacts both arrays and hashes properly' do
+      expect({foo: {bar: nil, sna: [42, nil], baz: {b1: nil, b2: 42}}}.compactar).
+        to eq({foo: {sna: [42], baz: {b2: 42}}})
+    end
+  end
+
   describe 'segar' do
     describe 'nest' do
       it 'filters keys out' do

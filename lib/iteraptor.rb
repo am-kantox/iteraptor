@@ -32,6 +32,15 @@ module Iteraptor
     rechazar_o_escoger true, *filter, **params, &λ
   end
 
+  def compactar **params
+    mapa(yield_all: true) do |p, (k, v)|
+      v.is_a?(Array) ? [k, v.compact] : [k, v]
+    end.mapa(**params) do |parent, (k, v)|
+      p = parent.split(H.iteraptor_delimiter(params)).last
+      (p.to_i.to_s != p && v.nil?) ? nil : [k, v]
+    end
+  end
+
   # rubocop:disable Style/Alias
   alias_method :segar, :escoger
   # rubocop:enable Style/Alias
