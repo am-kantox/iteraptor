@@ -109,6 +109,10 @@ describe Iteraptor do
     it { expect([].mapa {|_, _| nil}).to eq([]) }
     it { expect({}.rechazar(//) {|*| nil}).to eq({}) }
     it { expect([].escoger(//) {|*| nil}).to eq([]) }
+    it { expect({}.compactar).to eq({}) }
+    it { expect({foo: nil}.compactar).to eq({}) }
+    it { expect([].compactar).to eq([]) }
+    it { expect([nil].compactar).to eq([]) }
   end
 
   describe 'mapa' do
