@@ -26,6 +26,13 @@ describe Iteraptor do
     { a: 42, s: [:v1, :v2, 42].to_set }
   end
 
+  let(:mixed) do
+    {
+      a1: [{foo: 42}, {bar: nil}, {foo: :baz}],
+      a2: [{foo: 42}, {bar: nil}, {foo: :baz}]
+    }
+  end
+
   # rubocop:disable Style/HashSyntax
   # rubocop:disable Style/SpaceInsideHashLiteralBraces
   # rubocop:disable Style/SpaceAroundOperators
@@ -251,6 +258,34 @@ describe Iteraptor do
             :a5 => "a2_a4_a5 :: 42",
             :a6 => ["a2_a4_a6_0", "a2_a4_a6_1"]
           }
+        }
+      )
+    end
+  end
+
+  describe 'get_in' do
+    let(:mixed) do
+      {
+        a1: [{foo: 42}, {bar: nil}, {foo: :baz}],
+        a2: [{foo: [1,2,3]}, {bar: nil}, {foo: [:baz]}]
+      }
+    end
+
+    it 'gets the values properly' do
+      expect(
+        mixed.get_in([[:key, :a2], [:filter, ->(_) { true }], [:key, :foo], [:filter, :all]])
+      ).to eq({ a2: [{foo: "42"}, {foo: "baz"}] })
+    end
+  end
+
+  describe 'update_in' do
+    it 'updates the values properly' do
+      expect(
+        mixed.update_in([[:key, :a2], [:filter, ->(_) { true }], [:key, :foo]], &->(e) { e.to_s })
+      ).to eq(
+        {
+          a1: [{foo: 42}, {bar: nil}, {foo: :baz}],
+          a2: [{foo: "42"}, {bar: nil}, {foo: "baz"}]
         }
       )
     end

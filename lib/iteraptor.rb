@@ -3,13 +3,35 @@ require "iteraptor/version"
 # rubocop:disable Style/VariableNumber
 # rubocop:disable Metrics/ModuleLength
 module Iteraptor
-
   def self.included base
     raise "This module might be included into Enumerables only" unless base.ancestors.include? Enumerable
   end
 
   def iteraptor
     @__iteraptor__ ||= Iteraptor::Delegator.new(self)
+  end
+
+  def get_in path, **params
+    params = params.merge(full_parent: true, yield_all: false)
+
+    cada(**params).with_object([]) do |(key, value), memo|
+      next unless path.length == key.length
+      next unless H.path_matcher(path).(key)
+
+      memo << [key, value]
+    end.each_with_object([[], []]) do |(k, v), memo|
+      k[1..-2] == memo.first ? memo.last.last << v : memo.last << [v]
+      memo[0] = k[1..-2]
+    end.last
+  end
+
+  def update_in path, **params, &λ
+    params[:full_parent] = true
+    match_path = ->(key) { H.path_matcher(path, key) }
+
+    mapa(**params) do |key, (k, value)|
+      H.path_matcher(path).(key) ? [k, λ.(value)] : [k, value]
+    end
   end
 
   %i[cada mapa].each do |m|
@@ -232,6 +254,22 @@ module Iteraptor
 
       def enumerable_parent?(receiver)
         [Hash, Array, Enumerable].detect(&receiver.method(:is_a?))
+      end
+
+      def path_matcher path
+        pm =
+          path.map do |kind, value|
+            case kind
+            when :key, :elem, :at then ->(k) { value == k }
+            when :slice then ->(k) { value.cover?(k) }
+            when :filter
+              case value
+              when :all then ->(_) { true }
+              when Proc then ->(k) { value.(k) }
+              end
+            end
+          end
+        ->(key) { path.length == key.length && pm.zip(key).all? { |m, k| m.(k) } }
       end
     end
   end
