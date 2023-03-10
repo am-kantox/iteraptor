@@ -11,26 +11,27 @@ module Iteraptor
     @__iteraptor__ ||= Iteraptor::Delegator.new(self)
   end
 
-  def get_in path, **params
-    params = params.merge(full_parent: true, yield_all: false)
+  def get_in path
+    hash =
+      cada(full_parent: true, yield_all: true).with_object({}) do |(key, value), memo|
+        next unless path.length == key.length
+        next unless H.path_matcher(path).(key, value)
 
-    cada(**params).with_object([]) do |(key, value), memo|
-      next unless path.length == key.length
-      next unless H.path_matcher(path).(key)
+        memo.enterrar!(key, value)
+      end.compactar
 
-      memo << [key, value]
-    end.each_with_object([[], []]) do |(k, v), memo|
-      k[1..-2] == memo.first ? memo.last.last << v : memo.last << [v]
-      memo[0] = k[1..-2]
-    end.last
+    Iteraptor.apretar(hash)
   end
 
-  def update_in path, **params, &λ
-    params[:full_parent] = true
-    match_path = ->(key) { H.path_matcher(path, key) }
+  def put_in path, value
+    update_in(path) { |_| value }
+  end
 
-    mapa(**params) do |key, (k, value)|
-      H.path_matcher(path).(key) ? [k, λ.(value)] : [k, value]
+  def update_in path, &λ
+    match_path = ->(key) { H.path_matcher(path, key, value) }
+
+    mapa(full_parent: true, yield_all: false) do |key, (k, value)|
+      H.path_matcher(path).(key, value) ? [k, λ.(value)] : [k, value]
     end
   end
 
@@ -64,6 +65,16 @@ module Iteraptor
       end.tap do |this|
         break {} if this.empty? && is_a?(Hash)
       end
+  end
+
+  def self.apretar(object)
+    case object
+    when Enumerable
+      object.
+        map { |*maybe_kv| apretar(maybe_kv.flatten(1).last) }.
+        tap { |e| break e.first if !object.is_a?(Array) && e.is_a?(Array) && e.size == 1 }
+    else object
+    end
   end
 
   # rubocop:disable Style/Alias
@@ -103,6 +114,16 @@ module Iteraptor
       key = key.join(H.iteraptor_delimiter(params)) if params[:full_parent]
       key = key.to_sym if params[:symbolize_keys]
       acc << yield(key, value) unless value.is_a?(Enumerable)
+    end
+  end
+
+  def enterrar! key, value
+    key = [key] unless key.is_a?(Array)
+
+    if key.size == 1
+      self.tap { |this| this[key.first] = value }
+    else
+      (self[key.first] ||= key[1].is_a?(Integer) ? [] : {}).enterrar!(key[1..-1], value)
     end
   end
 
@@ -260,16 +281,18 @@ module Iteraptor
         pm =
           path.map do |kind, value|
             case kind
-            when :key, :elem, :at then ->(k) { value == k }
-            when :slice then ->(k) { value.cover?(k) }
-            when :filter
+            when :key, :elem, :at then ->(k, _) { value == k }
+            when :value then ->(_, v) { value == v }
+            when :filter then ->(_, v) { value.to_proc.(v) }
+            when :slice then ->(k, _) { value.cover?(k) }
+            when :filter_key
               case value
-              when :all then ->(_) { true }
-              when Proc then ->(k) { value.(k) }
+              when :all then ->(_, _) { true }
+              when ->(p) { p.respond_to?(:to_proc) } then ->(k, _) { value.to_proc.(k) }
               end
             end
-          end
-        ->(key) { path.length == key.length && pm.zip(key).all? { |m, k| m.(k) } }
+        end
+        ->(key, value) { path.length == key.length && pm.zip(key).all? { |m, k| m.(k, value) } }
       end
     end
   end

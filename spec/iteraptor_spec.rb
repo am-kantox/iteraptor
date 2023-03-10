@@ -264,17 +264,30 @@ describe Iteraptor do
   end
 
   describe 'get_in' do
-    let(:mixed) do
+    let(:mixed_array) do
+      [
+        [{foo: [42]}, {bar: nil}, {foo: [0, :baz]}],
+        [{foo: [1, :two, 3]}, {bar: nil}, {foo: [:baz, 0]}]
+      ]
+    end
+
+    it 'gets the values properly (array)' do
+      expect(
+        mixed_array.get_in([[:filter_key, :all], [:filter_key, :all], [:key, :foo], [:filter_key, :even?]])
+      ).to eq([[[42], [0]], [[1, 3], [:baz]]])
+    end
+
+    let(:mixed_hash) do
       {
         a1: [{foo: 42}, {bar: nil}, {foo: :baz}],
-        a2: [{foo: [1,2,3]}, {bar: nil}, {foo: [:baz]}]
+        a2: [{foo: [1, :two, 3]}, {bar: nil}, {foo: [:baz, 0]}]
       }
     end
 
-    it 'gets the values properly' do
+    it 'gets the values properly (hash)' do
       expect(
-        mixed.get_in([[:key, :a2], [:filter, ->(_) { true }], [:key, :foo], [:filter, :all]])
-      ).to eq({ a2: [{foo: "42"}, {foo: "baz"}] })
+        mixed_hash.get_in([[:key, :a2], [:filter_key, :all], [:key, :foo], [:filter, ->(v) { v.is_a?(Symbol) }]])
+      ).to eq([[:two], [:baz]])
     end
   end
 
@@ -286,6 +299,30 @@ describe Iteraptor do
         {
           a1: [{foo: 42}, {bar: nil}, {foo: :baz}],
           a2: [{foo: "42"}, {bar: nil}, {foo: "baz"}]
+        }
+      )
+    end
+  end
+
+  describe 'put_in' do
+    it 'puts the values properly' do
+      expect(
+        mixed.put_in([[:key, :a2], [:filter, ->(_) { true }], [:key, :foo]], "BOOM")
+      ).to eq(
+        {
+          a1: [{foo: 42}, {bar: nil}, {foo: :baz}],
+          a2: [{foo: "BOOM"}, {bar: nil}, {foo: "BOOM"}]
+        }
+      )
+    end
+
+    it 'does not put the values when path is not found' do
+      expect(
+        mixed.put_in([[:key, :a3]], "BOOM")
+      ).to eq(
+        {
+          a1: [{foo: 42}, {bar: nil}, {foo: :baz}],
+          a2: [{:foo=>42}, {:bar=>nil}, {:foo=>:baz}]
         }
       )
     end
